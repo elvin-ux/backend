@@ -39,9 +39,7 @@ exports.createDetection = async (req, res) => {
     const sensorTriggeredBool =
       sensorTriggered === "true" || sensorTriggered === true;
 
-    const imageUrl = req.file
-      ? `/api/images/${req.file.filename}`
-      : "";
+    const imageUrl = req.file ? req.file.path : "";
 
     if (!animal) {
       return res.status(400).json({
