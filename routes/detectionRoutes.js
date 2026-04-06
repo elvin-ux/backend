@@ -15,7 +15,18 @@ const uploadDetectionImage = require("../config/uploadDetectionImage");
 router.post(
   "/",
   deviceAuth,
-  uploadDetectionImage.single("image"),
+  (req, res, next) => {
+    uploadDetectionImage.single("image")(req, res, (err) => {
+      if (err) {
+        console.error("🚨 IMAGE UPLOAD ERROR:", err);
+        return res.status(500).json({ 
+          message: "Image upload to Cloudinary failed", 
+          error: err.message || err 
+        });
+      }
+      next();
+    });
+  },
   createDetection
 );
 
