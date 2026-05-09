@@ -8,6 +8,10 @@ async function insertCamera() {
   console.log("DB connected");
 
   const deviceId = "DEV-001";
+  const streamUrl = process.env.CAMERA_STREAM_URL;
+  if (!streamUrl) {
+    throw new Error("Set CAMERA_STREAM_URL to your current /device001/whep URL");
+  }
   
   const existing = await Camera.findOne({ deviceId });
   if (!existing) {
@@ -16,7 +20,7 @@ async function insertCamera() {
       cameraId: "CAM-001",
       name: "Crop Field Feed",
       status: "connected",
-      streamUrl: "https://original-status-alive-acre.trycloudflare.com/device001/whep",
+      streamUrl,
       location: "South Sector"
     });
     await newCamera.save();
@@ -26,8 +30,9 @@ async function insertCamera() {
     existing.status = "connected";
     existing.name = "Crop Field Feed";
     existing.location = "South Sector";
+    existing.streamUrl = streamUrl;
     await existing.save();
-    console.log("Camera already existed, updated name, location, and marked as connected.");
+    console.log("Camera already existed, updated name, location, stream URL, and marked as connected.");
   }
 
   process.exit(0);

@@ -76,3 +76,64 @@ exports.updateCameraStatus = async (req, res) => {
     res.status(500).json({ message: "Failed to update camera status" });
   }
 };
+
+
+/**
+ * Update camera stream URL
+ * PUT /api/cameras/:deviceId/:cameraId/stream
+ */
+exports.updateCameraStreamUrl = async (req, res) => {
+  try {
+    const deviceId = req.params.deviceId.toUpperCase();
+    const cameraId = req.params.cameraId.toUpperCase();
+    const { streamUrl } = req.body;
+
+    if (!streamUrl || typeof streamUrl !== "string") {
+      return res.status(400).json({ message: "streamUrl is required" });
+    }
+
+    const trimmedStreamUrl = streamUrl.trim();
+
+    if (!trimmedStreamUrl.endsWith("/whep")) {
+      return res.status(400).json({
+        message: "streamUrl must be the WHEP URL ending with /device001/whep",
+      });
+    }
+
+    const camera = await Camera.findOneAndUpdate(
+      { deviceId, cameraId },
+      { streamUrl: trimmedStreamUrl, status: "connected" },
+      { new: true }
+    );
+
+    if (!camera) {
+      return res.status(404).json({ message: "Camera not found" });
+    }
+
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("camera_status_change", {
+        cameraId: camera.cameraId,
+        deviceId: camera.deviceId,
+        status: camera.status,
+        name: camera.name,
+        streamUrl: camera.streamUrl,
+      });
+    }
+
+    res.json({
+      message: "Camera stream URL updated",
+      camera: {
+        id: camera._id,
+        cameraId: camera.cameraId,
+        deviceId: camera.deviceId,
+        name: camera.name,
+        status: camera.status,
+        streamUrl: camera.streamUrl,
+      },
+    });
+  } catch (err) {
+    console.error("Update camera stream URL error:", err);
+    res.status(500).json({ message: "Failed to update camera stream URL" });
+  }
+};
