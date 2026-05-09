@@ -8,7 +8,7 @@ const { logInfo, logError } = require("../utils/systemLogger");
  */
 function classifyRisk(animal) {
   const highRisk = ["elephant", "tiger", "leopard"];
-  const mediumRisk = ["bear", "boar", "monkey"];
+  const mediumRisk = ["bear", "boar", "wild boar", "monkey"];
   const lowRisk = ["person", "cat", "deer", "dog"];
 
   const a = animal.toLowerCase();
@@ -18,6 +18,10 @@ function classifyRisk(animal) {
   if (lowRisk.includes(a)) return "low";
 
   return "low";
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 
@@ -154,7 +158,7 @@ exports.getDeviceDetections = async (req, res) => {
 
     const { deviceId } = req.params;
 
-    const { sort, riskLevel } = req.query;
+    const { sort, riskLevel, animal } = req.query;
 
     if (!deviceId) {
       return res.status(400).json({
@@ -178,6 +182,7 @@ exports.getDeviceDetections = async (req, res) => {
 
     const query = { deviceId };
     if (riskLevel) query.riskLevel = riskLevel;
+    if (animal) query.animal = new RegExp(`^${escapeRegex(animal)}$`, "i");
 
     const detections = await Detection.find(query)
       .sort(sortOption);

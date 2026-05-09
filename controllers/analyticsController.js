@@ -14,7 +14,8 @@ exports.getAnalyticsSummary = async (req, res) => {
     const hourCounts = {};
 
     detections.forEach(d => {
-      animalCounts[d.animal] = (animalCounts[d.animal] || 0) + 1;
+      const animal = (d.animal || "unknown").toLowerCase();
+      animalCounts[animal] = (animalCounts[animal] || 0) + 1;
       const hour = new Date(d.timestamp || d.createdAt).getHours();
       hourCounts[hour] = (hourCounts[hour] || 0) + 1;
     });
@@ -30,7 +31,7 @@ exports.getAnalyticsSummary = async (req, res) => {
 
     // Most dangerous: prefer elephant > tiger > leopard, then bear/boar/monkey
     const highRisk = ["elephant", "tiger", "leopard"];
-    const mediumRisk = ["bear", "boar", "monkey"];
+    const mediumRisk = ["bear", "boar", "wild boar", "monkey"];
     let mostDangerousAnimal = "None";
     for (const tier of [highRisk, mediumRisk]) {
       let tierMax = 0;
@@ -96,9 +97,14 @@ exports.getDetectionHistory = async (req, res) => {
       { $match: { deviceId } },
 
       {
+        $addFields: {
+          chartDate: { $ifNull: ["$timestamp", "$createdAt"] }
+        }
+      },
+      {
         $group: {
           _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$timestamp" }
+            $dateToString: { format: "%Y-%m-%d", date: "$chartDate" }
           },
           count: { $sum: 1 }
         }
@@ -161,7 +167,7 @@ exports.getRiskDistribution = async (req, res) => {
     };
 
     const highRisk = ["elephant", "tiger", "leopard"];
-    const mediumRisk = ["bear", "boar", "monkey"];
+    const mediumRisk = ["bear", "boar", "wild boar", "monkey"];
 
     detections.forEach(d => {
       const animal = d.animal.toLowerCase();
@@ -193,7 +199,8 @@ exports.getGlobalAnalyticsSummary = async (req, res) => {
     const animalCounts = {};
 
     detections.forEach(d => {
-      animalCounts[d.animal] = (animalCounts[d.animal] || 0) + 1;
+      const animal = (d.animal || "unknown").toLowerCase();
+      animalCounts[animal] = (animalCounts[animal] || 0) + 1;
     });
 
     let mostFrequentAnimal = "None";
@@ -220,8 +227,13 @@ exports.getGlobalDetectionHistory = async (req, res) => {
   try {
     const history = await Detection.aggregate([
       {
+        $addFields: {
+          chartDate: { $ifNull: ["$timestamp", "$createdAt"] }
+        }
+      },
+      {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$chartDate" } },
           count: { $sum: 1 }
         }
       },
@@ -265,8 +277,8 @@ exports.getGlobalRiskDistribution = async (req, res) => {
       let rLevel = d.riskLevel;
       if (!rLevel) {
           const animal = d.animal.toLowerCase();
-          if (animal === "elephant" || animal === "leopard") rLevel = "high";
-          else if (animal === "boar") rLevel = "medium";
+          if (["elephant", "tiger", "leopard"].includes(animal)) rLevel = "high";
+          else if (["bear", "boar", "wild boar", "monkey"].includes(animal)) rLevel = "medium";
           else rLevel = "low";
       }
       

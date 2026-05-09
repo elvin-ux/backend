@@ -35,7 +35,10 @@ exports.getDashboardStats = async (req, res) => {
       : "None";
 
     // System uptime — approximate from device createdAt
-    const uptimeMs = Date.now() - new Date(device.createdAt).getTime();
+    const createdAtMs = new Date(device.createdAt || device.updatedAt || Date.now()).getTime();
+    const uptimeMs = Number.isFinite(createdAtMs)
+      ? Math.max(0, Date.now() - createdAtMs)
+      : 0;
     const uptimeHours = Math.floor(uptimeMs / (1000 * 60 * 60));
     const systemUptime =
       uptimeHours >= 24

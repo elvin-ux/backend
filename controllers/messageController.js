@@ -28,7 +28,9 @@ exports.sendMessage = async (req, res) => {
     const io = req.app.get("io");
     if (io) {
       io.emit("new_message", message);
-      io.emit("new_notification", { deviceId, type: "chat" });
+      if (senderRole === "officer") {
+        io.emit("new_notification", { deviceId, type: "chat" });
+      }
     }
 
     // Create a persisted chat notification for the farmer when officer sends a message
